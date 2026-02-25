@@ -23,8 +23,12 @@ fun DocumentsScreen(
     onBack: () -> Unit
 ) {
     val ctx = LocalContext.current
+
     var docs by remember { mutableStateOf<List<SavedPdf>>(emptyList()) }
     var msg by remember { mutableStateOf<String?>(null) }
+
+    // 🔥 nuevo: pdf a eliminar
+    var pdfToDelete by remember { mutableStateOf<SavedPdf?>(null) }
 
     fun refresh() {
         docs = vm.listPdfs()
@@ -45,6 +49,7 @@ fun DocumentsScreen(
             )
         }
     ) { padding ->
+
         if (docs.isEmpty()) {
             Column(
                 modifier = Modifier
@@ -63,17 +68,41 @@ fun DocumentsScreen(
                 items(docs) { item ->
                     PdfItemCard(
                         item = item,
-                        onOpen = { openPdf(ctx, item.uri) },   // ✅ ABRIR PDF AL TOCAR
+                        onOpen = { openPdf(ctx, item.uri) },
                         onShare = { sharePdf(ctx, item) },
                         onDelete = {
-                            val ok = vm.deletePdf(item.uri)
-                            msg = if (ok) "✅ PDF eliminado." else "❌ No se pudo eliminar."
-                            refresh()
+                            pdfToDelete = item   // 🔥 solo guardamos referencia
                         }
                     )
                 }
             }
         }
+    }
+
+    // 🔔 Confirmación de eliminación
+    pdfToDelete?.let { item ->
+        AlertDialog(
+            onDismissRequest = { pdfToDelete = null },
+            title = { Text("Eliminar PDF") },
+            text = { Text("¿Seguro que deseas eliminar \"${item.name}\"? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val ok = vm.deletePdf(item.uri)
+                        msg = if (ok) "✅ PDF eliminado." else "❌ No se pudo eliminar."
+                        pdfToDelete = null
+                        refresh()
+                    }
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pdfToDelete = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     msg?.let { ConfirmDialog("Mensaje", it, onDismiss = { msg = null }) }
@@ -93,14 +122,5 @@ private fun openPdf(context: Context, uri: Uri) {
         setDataAndType(uri, "application/pdf")
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    try {
-        context.startActivity(Intent.createChooser(intent, "Abrir PDF"))
-    } catch (e: Exception) {
-        // Si no hay app para abrir PDF instalada
-        context.startActivity(
-            Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse("market://details?id=com.google.android.apps.pdfviewer")
-            }
-        )
-    }
+    context.startActivity(Intent.createChooser(intent, "Abrir PDF"))
 }

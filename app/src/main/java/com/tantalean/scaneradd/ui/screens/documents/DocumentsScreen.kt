@@ -2,6 +2,7 @@ package com.tantalean.scaneradd.ui.screens.documents
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,9 +30,7 @@ fun DocumentsScreen(
         docs = vm.listPdfs()
     }
 
-    LaunchedEffect(Unit) {
-        refresh()
-    }
+    LaunchedEffect(Unit) { refresh() }
 
     Scaffold(
         topBar = {
@@ -64,6 +63,7 @@ fun DocumentsScreen(
                 items(docs) { item ->
                     PdfItemCard(
                         item = item,
+                        onOpen = { openPdf(ctx, item.uri) },   // ✅ ABRIR PDF AL TOCAR
                         onShare = { sharePdf(ctx, item) },
                         onDelete = {
                             val ok = vm.deletePdf(item.uri)
@@ -86,4 +86,21 @@ private fun sharePdf(context: Context, item: SavedPdf) {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     context.startActivity(Intent.createChooser(intent, "Compartir PDF"))
+}
+
+private fun openPdf(context: Context, uri: Uri) {
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(uri, "application/pdf")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    try {
+        context.startActivity(Intent.createChooser(intent, "Abrir PDF"))
+    } catch (e: Exception) {
+        // Si no hay app para abrir PDF instalada
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse("market://details?id=com.google.android.apps.pdfviewer")
+            }
+        )
+    }
 }

@@ -2,6 +2,8 @@ package com.tantalean.scaneradd.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -9,6 +11,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,10 +25,12 @@ import com.tantalean.scaneradd.storage.SavedPdf
 @Composable
 fun PdfItemCard(
     item: SavedPdf,
+    onOpen: () -> Unit,     // ✅ nuevo
     onShare: () -> Unit,
     onDelete: () -> Unit
 ) {
     val shape = RoundedCornerShape(16.dp)
+
     val glassBg = Brush.linearGradient(
         listOf(
             Color.White.copy(alpha = 0.06f),
@@ -33,12 +38,19 @@ fun PdfItemCard(
         )
     )
 
+    val interaction = remember { MutableInteractionSource() }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
             .background(glassBg)
             .border(1.dp, Color.White.copy(alpha = 0.08f), shape)
+            .clickable(
+                interactionSource = interaction,
+                indication = null, // ✅ sin ripple (más minimal / glass)
+                onClick = onOpen
+            )
     ) {
         Row(
             modifier = Modifier
@@ -56,7 +68,7 @@ fun PdfItemCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "PDF Document",
+                    text = "Toca para ver",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
